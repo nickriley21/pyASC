@@ -1,9 +1,12 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 #
 # Takes about 15" for 1400 images on laptop with a local fast disk (100% cpu)
 # But 60" on the Xeon, but at 300% cpu
 #
+from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
+
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import numpy as np
 import sys
 
@@ -102,11 +105,31 @@ def plot1(table,ax,Qtitle,title=None,invert=True,raw=False):
     if Qtitle and not raw:
         plt.title("%s sky: %g-%g  %.3f-%.3f h" % (table,s.min(),s.max(),t0,t1))
 
+        # gets the number of the image to use. Will be a number between -15 and 15
+        # calculated by multiplying the resulting moon illumination (negative or
+        # positive depending on waning/waxing) by 15 and rounding to the nearest integer.
+        # -15 and 15 are full moon, 0 is new moon.
+        image_num = round(amp/(1/15))
+
+        # if the image_num is out of bounds, just print the error moon value,
+        # which we can use to debug.
+        if image_num < -15 or image_num > 15:
+            plt.text(0, smax/4, 'moon %.3g' % amp, horizontalalignment='center')
+        # else put the correct image
+        else:
+            # file names in moonphases directory are of the from moonphases<-15 to 15>.png
+            moonphase_img = mpimg.imread('moonphases/moonphases' + str(int(image_num)) + '.png')
+
+            imagebox = OffsetImage(moonphase_img, zoom = 0.35)
+
+            ab = AnnotationBbox(imagebox, (0.5,0.5), xybox = (0,smax/4), frameon = False)
+
+            ax.add_artist(ab)
+
         # needs placement tweaking
         plt.text(3.14,     smax*1.1, 'midnight',        horizontalalignment='center')
         plt.text(1.2,      smax,     'sunrise',         horizontalalignment='left')
         plt.text(twopi-1.2,smax,     'sunset',          horizontalalignment='right')
-        plt.text(0,        smax/4,   'moon %.3g' % amp, horizontalalignment='center')
         
 
 
