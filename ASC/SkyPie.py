@@ -117,14 +117,18 @@ def plot1(table,ax,Qtitle,title=None,invert=True,raw=False):
             plt.text(0, smax/4, 'moon %.3g' % amp, horizontalalignment='center')
         # else put the correct image
         else:
+            image_num = 60
             # file names in moonphases directory are of the from moonphases<-15 to 15>.png
             moonphase_img = mpimg.imread('moonphases/moonphases' + str(int(image_num)) + '.png')
 
-            imagebox = OffsetImage(moonphase_img, zoom = 0.35)
-
-            ab = AnnotationBbox(imagebox, (0.5,0.5), xybox = (0,smax/4), frameon = False)
-
-            ax.add_artist(ab)
+            if moon_phase_img is not None:
+                # image exists, put it on the plot
+                imagebox = OffsetImage(moonphase_img, zoom = 0.35)
+                ab = AnnotationBbox(imagebox, (0.5,0.5), xybox = (0,smax/4), frameon = False)
+                ax.add_artist(ab)
+            else:
+                # image does not exist
+                plt.text(0, smax/4, 'moon %.3g' % -30, horizontalalignment='center')
 
         # needs placement tweaking
         plt.text(3.14,     smax*1.1, 'midnight',        horizontalalignment='center')
