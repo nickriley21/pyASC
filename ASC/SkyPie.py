@@ -19,7 +19,7 @@ BIGGER_SIZE = 8
 
 twopi = 2*np.pi
 
-def plot1(table,ax,Qtitle,title=None,invert=True,raw=False):
+def plot1(table,ax1,ax2,Qtitle,title=None,invert=True,raw=False):
     # invert:      this will place dark sky on the outside of the pie
     
     #   table of decimal hour time and median sky brightness (50,000 is very bright)
@@ -51,39 +51,60 @@ def plot1(table,ax,Qtitle,title=None,invert=True,raw=False):
     tmax = (18-t0)*15 + 270
 
     smax = 64000
-    
+    emax = e.max()
+
     print(tmin,tmax)
     x = (12-t) * twopi / 24.0
     if invert:
         #    dark sky on outside of the pie
-        y = s.max()-s
+        #y = s.max()-s
         y = smax-s
         print("y",invert,y.min(),y.max())
+
+        p = e
+        print("p",invert,p.min(),p.max())
     else:
         y = s
-        print("y",invert,y.min(),y.max())        
+        print("y",invert,y.min(),y.max())
+
+        p = e
+        print("p",invert,p.min,p.max)
+
     
     print(x.min(),x.max())
     print(y.min(),y.max())
 
 
 
-    ax.plot(x, y)
-    ax.set_theta_zero_location('S')
-    ax.set_ylim([0,smax])
-    ax.xaxis.set_major_formatter(plt.NullFormatter())
-    ax.xaxis.set_major_formatter(plt.NullFormatter())
-    ax.yaxis.set_major_formatter(plt.NullFormatter())
-    ax.yaxis.set_major_formatter(plt.NullFormatter())
+    ax1.plot(x, y)
+    ax1.set_theta_zero_location('S')
+    ax1.set_ylim([0,smax])
+    ax1.xaxis.set_major_formatter(plt.NullFormatter())
+    ax1.xaxis.set_major_formatter(plt.NullFormatter())
+    ax1.yaxis.set_major_formatter(plt.NullFormatter())
+    ax1.yaxis.set_major_formatter(plt.NullFormatter())
+
+    ax2.plot(x, p)
+    ax2.set_theta_zero_location('S')
+    ax2.set_ylim([0,emax])
+    ax2.xaxis.set_major_formatter(plt.NullFormatter())
+    ax2.xaxis.set_major_formatter(plt.NullFormatter())
+    ax2.yaxis.set_major_formatter(plt.NullFormatter())
+    ax2.yaxis.set_major_formatter(plt.NullFormatter())
     
     if False:
         # always same pie, an extra hour either side
         tmin=75
         tmax=285
     print(tmin,tmax)
-    ax.set_thetamin(tmin)
-    ax.set_thetamax(tmax)
+    ax1.set_thetamin(tmin)
+    ax1.set_thetamax(tmax)
+
+    ax2.set_thetamin(tmin)
+    ax2.set_thetamax(tmax)
+
     y1 = y
+    p1 = p
     if False:
         y1 = y*0 + smax
     
@@ -91,20 +112,35 @@ def plot1(table,ax,Qtitle,title=None,invert=True,raw=False):
     yb = 0.4 * y1   
     yc = 0.8 * y1  
     yd = 0.8 * y1   
-    ye = 0.9 * y1   
-    ax.fill_between(x,0, ya,facecolor='green',alpha=0.1)
-    ax.fill_between(x,ya,yb,facecolor='green',alpha=0.3)
-    ax.fill_between(x,yb,yc,facecolor='green',alpha=0.5)
-    ax.fill_between(x,yc,yd,facecolor='green',alpha=0.7)
-    ax.fill_between(x,yd,ye,facecolor='green',alpha=0.85)
-    ax.fill_between(x,ye,y ,facecolor='green',alpha=1)
+    ye = 0.9 * y1
+
+    ax1.fill_between(x,0, ya,facecolor='green',alpha=0.1)
+    ax1.fill_between(x,ya,yb,facecolor='green',alpha=0.3)
+    ax1.fill_between(x,yb,yc,facecolor='green',alpha=0.5)
+    ax1.fill_between(x,yc,yd,facecolor='green',alpha=0.7)
+    ax1.fill_between(x,yd,ye,facecolor='green',alpha=0.85)
+    ax1.fill_between(x,ye,y ,facecolor='green',alpha=1)
+
+    pa = 0.2 * p1    
+    pb = 0.4 * p1   
+    pc = 0.8 * p1  
+    pd = 0.8 * p1   
+    pe = 0.9 * p1
+    ax2.fill_between(x,0, pa,facecolor='orange',alpha=0.1)
+    ax2.fill_between(x,pa,pb,facecolor='orange',alpha=0.3)
+    ax2.fill_between(x,pb,pc,facecolor='orange',alpha=0.5)
+    ax2.fill_between(x,pc,pd,facecolor='orange',alpha=0.7)
+    ax2.fill_between(x,pd,pe,facecolor='orange',alpha=0.85)
+    ax2.fill_between(x,pe,p ,facecolor='orange',alpha=1)
     if title != None and not raw:
-        ax.text(0,smax/2,title,horizontalalignment='center')
+        ax1.text(0,smax/2,title,horizontalalignment='center')
         #ax.set_title(title)
 
     if Qtitle and not raw:
-        plt.title("%s sky: %g-%g  %.3f-%.3f h" % (table,s.min(),s.max(),t0,t1))
-
+        plt.suptitle("%s\nLocal Time: %.3f-%.3f h" % (table,t0,t1))
+        ax1.set_title("Brightness: %g-%g" % (s.min(),s.max()),fontdict={'fontsize':8})
+        ax2.set_title("Exposure: %g-%g" % (e.min(),e.max()),fontdict={'fontsize':8})
+        
         # gets the number of the image to use. Will be a number between -15 and 15
         # calculated by multiplying the resulting moon illumination (negative or
         # positive depending on waning/waxing) by 15 and rounding to the nearest integer.
@@ -113,15 +149,14 @@ def plot1(table,ax,Qtitle,title=None,invert=True,raw=False):
 
         # if the image_num is out of bounds, just print the error moon value,
         # which we can use to debug.
-        if image_num < -15 or image_num > 15:
-            plt.text(0, smax/4, 'moon %.3g' % amp, horizontalalignment='center')
+        if True or image_num < -15 or image_num > 15:
+            ax1.text(1.1, 0, 'moon %.3g' % amp, horizontalalignment='center', transform=ax1.transAxes)
         # else put the correct image
         else:
-            image_num = 60
             # file names in moonphases directory are of the from moonphases<-15 to 15>.png
             moonphase_img = mpimg.imread('moonphases/moonphases' + str(int(image_num)) + '.png')
 
-            if moon_phase_img is not None:
+            if moonphase_img is not None:
                 # image exists, put it on the plot
                 imagebox = OffsetImage(moonphase_img, zoom = 0.35)
                 ab = AnnotationBbox(imagebox, (0.5,0.5), xybox = (0,smax/4), frameon = False)
@@ -131,9 +166,15 @@ def plot1(table,ax,Qtitle,title=None,invert=True,raw=False):
                 plt.text(0, smax/4, 'moon %.3g' % -30, horizontalalignment='center')
 
         # needs placement tweaking
-        plt.text(3.14,     smax*1.1, 'midnight',        horizontalalignment='center')
-        plt.text(1.2,      smax,     'sunrise',         horizontalalignment='left')
-        plt.text(twopi-1.2,smax,     'sunset',          horizontalalignment='right')
+        print('theta',tmin*3.14/180,tmax*3.14/180)
+        deg_to_rad = 3.14/180
+        ax1.text(3.14,              1.1*smax,   'midnight',        horizontalalignment='center',   fontdict={'fontsize':8})
+        ax1.text(tmin*deg_to_rad,   smax,       'sunrise',         horizontalalignment='left',     fontdict={'fontsize':8})
+        ax1.text(tmax*deg_to_rad,   smax,       'sunset',          horizontalalignment='right',    fontdict={'fontsize':8})
+
+        ax2.text(3.14,              1.1*emax,   'midnight',        horizontalalignment='center',   fontdict={'fontsize':8})
+        ax2.text(tmin*deg_to_rad,   emax,       'sunrise',         horizontalalignment='left',     fontdict={'fontsize':8})
+        ax2.text(tmax*deg_to_rad,   emax,       'sunset',          horizontalalignment='right',    fontdict={'fontsize':8})
         
 
 
@@ -165,7 +206,7 @@ ny = ntable // nx
 
 print(nx,ny)
 
-fig, ax = plt.subplots(ny, nx, subplot_kw=dict(projection='polar'))
+fig, (ax1,ax2) = plt.subplots(1,2,subplot_kw=dict(projection='polar'))
 
 if ntable > 1:
     plt.subplots_adjust(hspace = .001,wspace=0.001, left=0.01, right=0.99, bottom=0.01, top=0.99)
@@ -177,12 +218,12 @@ if ntable > 1:
 #      hspace = 0.2   # the amount of height reserved for white space between subplots
 
 if Qtitle:
-    plot1(table,ax,True,raw=Qraw)
+    plot1(table,ax1,ax2,True,raw=Qraw)
 else:    
     k = 1
     for i in range(nx):
         for j in range(ny):
-            plot1(sys.argv[k],ax[j][i],False,sys.argv[k])
+            plot1(sys.argv[k],ax1[j][i],ax2[j][i],False,sys.argv[k])
             k = k+1
 
 
