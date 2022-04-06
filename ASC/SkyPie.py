@@ -16,7 +16,6 @@ MEDIUM_SIZE = 8
 BIGGER_SIZE = 8
 
 
-
 twopi = 2*np.pi
 
 def plot1(table,ax1,ax2,Qtitle,title=None,invert=True,raw=False):
@@ -25,6 +24,9 @@ def plot1(table,ax1,ax2,Qtitle,title=None,invert=True,raw=False):
     #   table of decimal hour time and median sky brightness (50,000 is very bright)
     # (t,s,ffile) = np.loadtxt(table).T
     loaded = np.genfromtxt(table, dtype=None, delimiter=' ')
+    print(loaded[0],'\n\n')
+    # read the first line, it has sunrise and sunset times
+    fline = open(sys.argv[1]).readline().rstrip()[1:].split(' ')
     try:
         (t,s,e,m) = np.array([t[0] for t in loaded]), np.array([t[1] for t in loaded]), np.array([t[2] for t in loaded]), np.array([t[3] for t in loaded])
         print(t)
@@ -58,23 +60,17 @@ def plot1(table,ax1,ax2,Qtitle,title=None,invert=True,raw=False):
     if invert:
         #    dark sky on outside of the pie
         #y = s.max()-s
-        y = smax-s
+        y = smax - s
         print("y",invert,y.min(),y.max())
-
         p = e
         print("p",invert,p.min(),p.max())
     else:
         y = s
         print("y",invert,y.min(),y.max())
-
         p = e
         print("p",invert,p.min,p.max)
 
-    
-    print(x.min(),x.max())
-    print(y.min(),y.max())
-
-
+    ax1.text(2, -0.2, 'Key:\nRed Line: Sunset\nBlue Line: Sunrise', horizontalalignment='center', transform=ax1.transAxes)
 
     ax1.plot(x, y)
     ax1.set_theta_zero_location('S')
@@ -91,12 +87,59 @@ def plot1(table,ax1,ax2,Qtitle,title=None,invert=True,raw=False):
     ax2.xaxis.set_major_formatter(plt.NullFormatter())
     ax2.yaxis.set_major_formatter(plt.NullFormatter())
     ax2.yaxis.set_major_formatter(plt.NullFormatter())
+
+    # angles at which to draw sunrise/sunset
+    # makes assumption sunrise will always be after 00:00 and before 12:00
+    # and that sunset will allways be after 12:00 and before 00:00
+    tset = (12-float(fline[0]))*np.pi/12
+    trise = (12-float(fline[1]))*np.pi/12
+
+    # change tmin and tmax to be in [0,360) for ease of use and shifted to 0
+    # being east and 90 being north
+    tmincorr = np.deg2rad(tmin-(360*((tmin)//360)))
+    tmaxcorr = np.deg2rad(tmax-(360*((tmax)//360)))
+    # functions to draw sunrise/sunset dashed line
+    def annotatesunrise(mult1,mult2):
+        ax1.annotate('',
+                xy=[0,0],  # theta, radius
+                xytext = [trise,smax*mult1],
+                arrowprops=dict(linestyle = '--',arrowstyle = '-',color='blue'))
+        ax2.annotate('',
+                    xy=[0,0],  # theta, radius
+                    xytext = [trise,emax*mult2],
+                    #textcoords = 'polar',
+                    arrowprops=dict(linestyle = '--',arrowstyle = '-',color='blue'))
+    def annotatesunset(mult1,mult2):
+        ax1.annotate('',
+                xy=[0,0],  # theta, radius
+                xytext = [tset,smax*mult1],
+                arrowprops=dict(linestyle = '--',arrowstyle = '-',color='red'))
+        ax2.annotate('',
+                xy=[0,0],  # theta, radius
+                xytext = [tset,emax*mult2],
+                #textcoords = 'polar',
+                arrowprops=dict(linestyle = '--',arrowstyle = '-',color='red'))
+
+    # note: the theta values for this plot are shifted by pi/2, so if sin is
+    # positive for both max and min, it is only on the right side of plot, so 
+    # only annote sunrise
+    if np.sin(tmaxcorr) > 0 and np.sin(tmincorr) > 0:
+        annotatesunrise(1.1,1.1)
+    # note: the theta values for this plot are shifted by pi/2, so if sin is
+    # negative for both max and min, it is only on the left side of plot, so 
+    # only annote sunrise
+    elif np.sin(tmincorr) < 0 and np.sin(tmaxcorr) < 0:
+        annotatesunset(1.1,1.1)
+    # if they are pretty close (pi/2 close, may need adjusting),
+    # just draw them a little bit smaller
+    elif abs(tmaxcorr - tmincorr) < np.pi/2:
+        annotatesunrise(0.6,0.6)
+        annotatesunset(0.6,0.6)
+    # else draw both
+    else:
+        annotatesunrise(1.1,1.1)
+        annotatesunset(1.1,1.1)
     
-    if False:
-        # always same pie, an extra hour either side
-        tmin=75
-        tmax=285
-    print(tmin,tmax)
     ax1.set_thetamin(tmin)
     ax1.set_thetamax(tmax)
 
@@ -105,15 +148,12 @@ def plot1(table,ax1,ax2,Qtitle,title=None,invert=True,raw=False):
 
     y1 = y
     p1 = p
-    if False:
-        y1 = y*0 + smax
-    
+
     ya = 0.2 * y1    
     yb = 0.4 * y1   
     yc = 0.8 * y1  
     yd = 0.8 * y1   
     ye = 0.9 * y1
-
     ax1.fill_between(x,0, ya,facecolor='green',alpha=0.1)
     ax1.fill_between(x,ya,yb,facecolor='green',alpha=0.3)
     ax1.fill_between(x,yb,yc,facecolor='green',alpha=0.5)
@@ -134,12 +174,11 @@ def plot1(table,ax1,ax2,Qtitle,title=None,invert=True,raw=False):
     ax2.fill_between(x,pe,p ,facecolor='orange',alpha=1)
     if title != None and not raw:
         ax1.text(0,smax/2,title,horizontalalignment='center')
-        #ax.set_title(title)
 
     if Qtitle and not raw:
         plt.suptitle("%s\nLocal Time: %.3f-%.3f h" % (table,t0,t1))
-        ax1.set_title("Brightness: %g-%g" % (s.min(),s.max()),fontdict={'fontsize':8})
-        ax2.set_title("Exposure: %g-%g" % (e.min(),e.max()),fontdict={'fontsize':8})
+        ax1.set_title("Brightness: %g-%g ADU" % (s.min(),s.max()),fontdict={'fontsize':9}, pad = -20)
+        ax2.set_title("Exposure: %g-%g sec" % (e.min(),e.max()),fontdict={'fontsize':9}, pad = -20)
         
         # gets the number of the image to use. Will be a number between -15 and 15
         # calculated by multiplying the resulting moon illumination (negative or
@@ -150,8 +189,13 @@ def plot1(table,ax1,ax2,Qtitle,title=None,invert=True,raw=False):
         # if the image_num is out of bounds, just print the error moon value,
         # which we can use to debug.
         if True or image_num < -15 or image_num > 15:
-            ax1.text(1.1, 0, 'moon %.3g' % amp, horizontalalignment='center', transform=ax1.transAxes)
+            pm = ''
+            if amp > 0:
+                pm = '+'
+            ax1.text(1.1, -0.2, 'moon illum: %s%g%%\nimage num: %g' % (pm,round(amp*100),image_num), horizontalalignment='center', transform=ax1.transAxes)
         # else put the correct image
+        # will need to change the names of the images. As of now, I do not know 
+        # what they will be called.
         else:
             # file names in moonphases directory are of the from moonphases<-15 to 15>.png
             moonphase_img = mpimg.imread('moonphases/moonphases' + str(int(image_num)) + '.png')
@@ -165,16 +209,10 @@ def plot1(table,ax1,ax2,Qtitle,title=None,invert=True,raw=False):
                 # image does not exist
                 plt.text(0, smax/4, 'moon %.3g' % -30, horizontalalignment='center')
 
-        # needs placement tweaking
         print('theta',tmin*3.14/180,tmax*3.14/180)
-        deg_to_rad = 3.14/180
         ax1.text(3.14,              1.1*smax,   'midnight',        horizontalalignment='center',   fontdict={'fontsize':8})
-        ax1.text(tmin*deg_to_rad,   smax,       'sunrise',         horizontalalignment='left',     fontdict={'fontsize':8})
-        ax1.text(tmax*deg_to_rad,   smax,       'sunset',          horizontalalignment='right',    fontdict={'fontsize':8})
 
         ax2.text(3.14,              1.1*emax,   'midnight',        horizontalalignment='center',   fontdict={'fontsize':8})
-        ax2.text(tmin*deg_to_rad,   emax,       'sunrise',         horizontalalignment='left',     fontdict={'fontsize':8})
-        ax2.text(tmax*deg_to_rad,   emax,       'sunset',          horizontalalignment='right',    fontdict={'fontsize':8})
         
 
 
@@ -187,9 +225,7 @@ if ntable == 1:
 else:
     Qtitle = False
 
-
 Qraw = False    # set to true if you don't want any labeling around the plot, just the pie
-
 
 if ntable > 1:
     plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
@@ -206,10 +242,10 @@ ny = ntable // nx
 
 print(nx,ny)
 
+# ax1 is will be the brightness/green graph. ax2 will be the exposure/orange graph
 fig, (ax1,ax2) = plt.subplots(1,2,subplot_kw=dict(projection='polar'))
 
-if ntable > 1:
-    plt.subplots_adjust(hspace = .001,wspace=0.001, left=0.01, right=0.99, bottom=0.01, top=0.99)
+plt.subplots_adjust(hspace = .001,wspace=0.2, left=0.01, right=0.99, bottom=0.15, top=0.99)
 #      left  = 0.125  # the left side of the subplots of the figure
 #      right = 0.9    # the right side of the subplots of the figure
 #      bottom = 0.1   # the bottom of the subplots of the figure
@@ -226,9 +262,7 @@ else:
             plot1(sys.argv[k],ax1[j][i],ax2[j][i],False,sys.argv[k])
             k = k+1
 
-
 plt.savefig(png)
-# plt.show()
 
 print("Written ",png)
 
